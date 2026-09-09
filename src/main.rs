@@ -54,10 +54,10 @@ async fn main() {
 async fn handler() -> Html<String> {
     let markup = html! {
         script src="https://unpkg.com/htmx.org@2.0.10" {}
-        h1 { "Hello from Rust!" }
+        h1 { "Convert pdf to epub" }
         form action="/upload" method="post" enctype="multipart/form-data" {
             input type="file" name="myfile";
-            button type="submit" { "Upload & Return" }
+            button type="submit" { "Upload & Convert" }
         }
     };
     Html(markup.into_string())
@@ -80,7 +80,7 @@ async fn upload_handler(
     //////////
 
     let mut file_name = String::from("downloaded_file");
-    let mut file_data: Option<Bytes> = None;
+    let mut file_data: Option<Bytes> = None; // TODO: this ends up None if the file is too big
 
     while let Ok(Some(field)) = multipart.next_field().await {
         if let Some(name) = field.file_name() {
