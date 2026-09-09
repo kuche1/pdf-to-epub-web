@@ -115,6 +115,9 @@ async fn upload_handler(
         ));
     }
 
+    let new_len = downloaded_pdf_name.len().saturating_sub(4);
+    let output_epub_name = format!("{}.epub", &downloaded_pdf_name[..new_len]);
+
     let downloaded_pdf = match util::generate_temp_file(".pdf") {
         Ok(v) => v,
         Err(e) => {
@@ -142,8 +145,6 @@ async fn upload_handler(
     let output_epub_bytes = tokio::fs::read(&output_epub)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    let output_epub_name = "idkman.epub"; // TODO: select a name based on the uploaded file's name
 
     //////////
     // set the required headers
