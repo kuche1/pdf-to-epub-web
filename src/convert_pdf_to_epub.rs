@@ -56,9 +56,12 @@ impl PdfToEpub {
         };
 
         if !output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(format!("Conversion failed:\n\n{}\n\n{}", stdout, stderr));
+            //// this may leek some metadata on the server, such as the path to the executable
+            // let stdout = String::from_utf8_lossy(&output.stdout);
+            // let stderr = String::from_utf8_lossy(&output.stderr);
+            // return Err(format!("Conversion failed:\n\n{}\n\n{}", stdout, stderr));
+
+            return Err("Conversions failed, is the uploaded file really a pdf?".to_string());
         }
 
         Ok(output_epub)
