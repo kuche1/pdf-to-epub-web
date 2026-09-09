@@ -1,0 +1,11 @@
+[package]
+name = "test-rust-web"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = { version = "0.8.9", features = ["multipart"] }
+maud = "0.27.0"
+serde = { version = "1.0.229", features = ["derive"] }
+tempfile = "3.27.0"
+tokio = { version = "1.53.1", features = ["fs", "rt-multi-thread"] }
