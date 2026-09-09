@@ -43,21 +43,22 @@ impl PdfToEpub {
             Err(e) => return Err(format!("Could not create temporary `.epub`: {}", e)),
         };
 
-        let status = Command::new(PROGRAM)
+        let output = Command::new(PROGRAM)
             .arg(pdf)
             .arg(&output_epub)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output();
 
-        let status = match status {
+        let output = match output {
             Ok(v) => v,
             Err(e) => return Err(format!("Could not convert pdf to epub: {}", e)),
         };
 
-        if !status.success() {
-            // TODO: maybe show the stdout
-            return Err("Could not convert pdf to epub".to_string());
+        if !output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("Conversion failed:\n\n{}\n\n{}", stdout, stderr));
         }
 
         Ok(output_epub)

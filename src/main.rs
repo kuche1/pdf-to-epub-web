@@ -111,7 +111,7 @@ async fn upload_handler(
     if !util::suffix_is_pdf(&downloaded_pdf_name) {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            "Uploaded a file that is not a pdf".to_string(),
+            "Uploaded a file that is not a pdf".to_string(), // TODO: this shows up if you select "upload" without having selected a file
         ));
     }
 
