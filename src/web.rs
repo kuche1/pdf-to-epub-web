@@ -14,16 +14,13 @@ use crate::util;
 use maud::html;
 use std::sync::Arc;
 
-// TODO: these 2 should not be hardcoded
-const ADDR: &str = "127.0.0.1:3000";
-const REQUEST_LIMIT_BYTES: usize = 1024 * 1024 * 1; // 1 MiB
-
 struct AppState {
     pdf_to_epub: Result<PdfToEpub, String>,
+    request_limit_bytes: usize,
 }
 
 impl AppState {
-    fn new() -> Self {
+    fn new(request_limit_bytes: usize) -> Self {
         let pdf_to_epub = PdfToEpub::new();
         if let Err(ref e) = pdf_to_epub {
             eprintln!("ERROR: {}", e);
@@ -31,21 +28,22 @@ impl AppState {
 
         Self {
             pdf_to_epub: pdf_to_epub,
+            request_limit_bytes: request_limit_bytes,
         }
     }
 }
 
-pub async fn main() {
-    let shared_state = Arc::new(AppState::new());
+pub async fn main(addr: &str, request_limit_bytes: usize) {
+    let shared_state = Arc::new(AppState::new(request_limit_bytes));
 
     let app = Router::new()
         .route("/", get(handler))
         .route("/upload", post(upload_handler))
-        .layer(DefaultBodyLimit::max(REQUEST_LIMIT_BYTES))
+        .layer(DefaultBodyLimit::max(request_limit_bytes))
         .with_state(shared_state);
 
-    let listener = tokio::net::TcpListener::bind(ADDR).await.unwrap();
-    println!("Listening on http://{}", ADDR);
+    println!("Binding on http://{}", addr);
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -97,7 +95,7 @@ async fn upload_handler(
                 StatusCode::BAD_REQUEST,
                 format!(
                     "No file uploaded OR file size (including request body data) exceeded the limit of {}",
-                    util::format_XiB(REQUEST_LIMIT_BYTES)
+                    util::format_XiB(state.request_limit_bytes)
                 ),
             ));
         }
