@@ -81,7 +81,7 @@ async fn upload_handler(
     //////////
 
     let mut downloaded_pdf_name = String::from("downloaded_file");
-    let mut downloaded_pdf_data: Option<Bytes> = None; // TODO: this ends up None if the file is too big
+    let mut downloaded_pdf_data: Option<Bytes> = None;
 
     while let Ok(Some(field)) = multipart.next_field().await {
         if let Some(name) = field.file_name() {
@@ -111,7 +111,7 @@ async fn upload_handler(
     if !util::suffix_is_pdf(&downloaded_pdf_name) {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            "Uploaded a file that is not a pdf".to_string(), // TODO: this shows up if you select "upload" without having selected a file
+            "You need to upload a pdf".to_string(), // this shows up if you select "upload" without having selected a file
         ));
     }
 

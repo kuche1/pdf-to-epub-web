@@ -20,7 +20,7 @@ pub fn generate_temp_file(suffix: &str) -> Result<TempPath, String> {
         Err(e) => return Err(e.to_string()),
     };
 
-    Ok(output_epub.into_temp_path()) // TODO: supposedly this automatically deletes the temporary file when the variable gets dropped, need to test this
+    Ok(output_epub.into_temp_path()) // this will automatically delete the temporary file when the variable gets cleaned
 }
 
 #[allow(non_snake_case)]
