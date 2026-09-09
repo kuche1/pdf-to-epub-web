@@ -2,4 +2,4 @@
 
 Run with `cargo run`.
 
-A link to the web interface will be printed.
+See `--help` for more info.
