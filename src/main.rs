@@ -16,6 +16,7 @@ use convert_pdf_to_epub::PdfToEpub;
 use maud::html;
 use std::sync::Arc;
 
+// TODO: these 2 should not be hardcoded
 const ADDR: &str = "127.0.0.1:3000";
 const REQUEST_LIMIT_BYTES: usize = 1024 * 1024 * 1; // 1 MiB
 
