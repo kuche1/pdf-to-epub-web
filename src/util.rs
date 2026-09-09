@@ -1,3 +1,4 @@
+use humansize::{BINARY, format_size};
 use std::path::Path;
 use tempfile::Builder;
 use tempfile::TempPath;
@@ -20,4 +21,9 @@ pub fn generate_temp_file(suffix: &str) -> Result<TempPath, String> {
     };
 
     Ok(output_epub.into_temp_path()) // TODO: supposedly this automatically deletes the temporary file when the variable gets dropped, need to test this
+}
+
+#[allow(non_snake_case)]
+pub fn format_XiB(unformatted: usize) -> String {
+    format_size(unformatted, BINARY)
 }

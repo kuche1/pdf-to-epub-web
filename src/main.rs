@@ -80,22 +80,35 @@ async fn upload_handler(
 
     //////////
 
-    let mut file_name = String::from("downloaded_file");
-    let mut file_data: Option<Bytes> = None; // TODO: this ends up None if the file is too big
+    let mut downloaded_pdf_name = String::from("downloaded_file");
+    let mut downloaded_pdf_data: Option<Bytes> = None; // TODO: this ends up None if the file is too big
 
     while let Ok(Some(field)) = multipart.next_field().await {
         if let Some(name) = field.file_name() {
-            file_name = name.to_string();
+            downloaded_pdf_name = name.to_string();
         }
         if let Ok(bytes) = field.bytes().await {
-            file_data = Some(bytes);
+            downloaded_pdf_data = Some(bytes);
             break;
         }
     }
 
+    let downloaded_pdf_data = match downloaded_pdf_data {
+        Some(data) => data,
+        None => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                format!(
+                    "No file uploaded OR file size (including request body data) exceeded the limit of {}",
+                    util::format_XiB(REQUEST_LIMIT_BYTES)
+                ),
+            ));
+        }
+    };
+
     //////////
 
-    if !util::suffix_is_pdf(&file_name) {
+    if !util::suffix_is_pdf(&downloaded_pdf_name) {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             "Uploaded a file that is not a pdf".to_string(),
@@ -113,16 +126,9 @@ async fn upload_handler(
     };
 
     //////////
-
-    let data = match file_data {
-        Some(data) => data,
-        None => return Err((StatusCode::BAD_REQUEST, "No file uploaded".to_string())),
-    };
-
-    //////////
     // download to disk
 
-    tokio::fs::write(&downloaded_pdf, &data)
+    tokio::fs::write(&downloaded_pdf, &downloaded_pdf_data)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
