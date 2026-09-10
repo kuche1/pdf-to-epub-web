@@ -15,39 +15,50 @@ use maud::html;
 use std::sync::Arc;
 
 struct AppState {
-    pdf_to_epub: Result<PdfToEpub, String>,
+    pdf_to_epub: PdfToEpub,
     request_limit_bytes: usize,
 }
 
 impl AppState {
-    fn new(request_limit_bytes: usize) -> Self {
-        let pdf_to_epub = PdfToEpub::new();
-        if let Err(ref e) = pdf_to_epub {
-            eprintln!("ERROR: {}", e);
-        }
+    fn new(request_limit_bytes: usize) -> Result<Self, String> {
+        let pdf_to_epub = match PdfToEpub::new() {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("ERROR: {}", e);
+                return Err(e);
+            }
+        };
 
-        Self {
+        Ok(Self {
             pdf_to_epub: pdf_to_epub,
             request_limit_bytes: request_limit_bytes,
-        }
+        })
     }
 }
 
 pub async fn main(addr: &str, request_limit_bytes: usize) {
-    let shared_state = Arc::new(AppState::new(request_limit_bytes));
+    let shared_state = AppState::new(request_limit_bytes);
 
-    let app = Router::new()
-        .route("/", get(handler))
-        .route("/upload", post(upload_handler))
-        .layer(DefaultBodyLimit::max(request_limit_bytes))
-        .with_state(shared_state);
+    let app = {
+        match shared_state {
+            Ok(ss) => Router::new()
+                .route("/", get(handle_main))
+                .route("/upload", post(handle_upload))
+                .with_state(Arc::new(ss)),
+            Err(e) => Router::new()
+                .route("/", get(handle_main_error))
+                .with_state(e),
+        }
+    };
+
+    let app = app.layer(DefaultBodyLimit::max(request_limit_bytes));
 
     println!("Binding on http://{}", addr);
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn handler() -> Html<String> {
+async fn handle_main() -> Html<String> {
     let markup = html! {
         script src="https://unpkg.com/htmx.org@2.0.10" {}
         h1 { "Convert pdf to epub" }
@@ -59,22 +70,10 @@ async fn handler() -> Html<String> {
     Html(markup.into_string())
 }
 
-async fn upload_handler(
+async fn handle_upload(
     State(state): State<Arc<AppState>>,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
-    let pdf_to_epub = match &state.pdf_to_epub {
-        Ok(v) => v,
-        Err(e) => {
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Internal Server Error: {}", e),
-            ));
-        }
-    };
-
-    //////////
-
     let mut downloaded_pdf_name = String::from("downloaded_file");
     let mut downloaded_pdf_data: Option<Bytes> = None;
 
@@ -132,7 +131,7 @@ async fn upload_handler(
 
     //////////
 
-    let output_epub = match pdf_to_epub.main(&downloaded_pdf) {
+    let output_epub = match state.pdf_to_epub.main(&downloaded_pdf) {
         Ok(v) => v,
         Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, e)),
     };
@@ -160,4 +159,13 @@ async fn upload_handler(
     // send the actual data
 
     Ok((headers, output_epub_bytes))
+}
+
+async fn handle_main_error(State(error): State<String>) -> Html<String> {
+    let markup = html! {
+        script src="https://unpkg.com/htmx.org@2.0.10" {}
+        h1 { "Internal Server Error" }
+        pre { (error) } // `pre` preserves `\n`
+    };
+    Html(markup.into_string())
 }
